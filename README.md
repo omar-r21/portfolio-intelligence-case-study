@@ -62,25 +62,29 @@ per click. Caching the research results at two hours took the cost of repeated c
 lesson generalises — the recurring job was cheap and the interactive feature was not, which is the
 opposite of what I'd assumed.
 
-## The part I'm removing
+## The part I removed
 
-The app has a tab where a model produces buy / sell / hedge recommendations, each with a confidence
-percentage. The prompt tells it to use a 30–89% range and never to exceed 89%.
+The app had a tab where a model produced buy / sell / hedge recommendations, each with a confidence
+percentage. The prompt told it to use a 30–89% range and never to exceed 89%.
 
 That number is invented. There's no model behind it, no calibration, nothing to check it against. It
 looks quantitative, which is precisely the problem: a made-up number wearing a lab coat is worse than no
 number, because it invites you to act on it.
 
-What replaces it is a risk engine, [riskkit](https://github.com/omar-r21/riskkit), which I built
+What replaced it is a risk engine, [riskkit](https://github.com/omar-r21/riskkit), which I built
 separately and open-sourced. It computes value-at-risk and expected shortfall, validates those models
-against twenty years of history, and attributes risk to individual positions. The app becomes a consumer
-of it: a nightly job runs the engine on the real portfolio, writes the results to Postgres, and the
-dashboard grows a Risk tab — losses against forecast, which positions actually drive the risk as opposed
-to which are largest, and how the portfolio would have fared through 2008, COVID and 2022.
+against twenty years of history, and attributes risk to individual positions. The app is now a consumer
+of it. Every weekday evening a scheduled job sends the engine the portfolio's weights (never dollar
+amounts), runs it, and writes the results to Postgres. The Risk tab that took the old tab's place shows
+95% and 99% VaR and ES, and which positions actually drive the risk as opposed to which are largest. The
+digest says whether the day's move broke the previous evening's forecast. A separate monthly job
+backtests the models on a decade of history for the holdings old enough to have one, and names the
+ones it had to leave out.
 
-The language model stays, in a smaller role. Instead of inventing recommendations it explains the
-computed numbers, and it does so through placeholders the code fills in, so the prose physically cannot
-contain a figure that wasn't calculated. Same feature, grounded.
+The language model stays, in a smaller role: it writes the two or three sentences that summarise the
+session. It no longer makes recommendations. It's handed only the computed figures and told not to
+write any number, asset, or reason for a move that isn't in them. That's a constraint in the prompt, not
+a structural guarantee, so the figures in the email's tables come from the code, never from the model.
 
 That split also settles what can be public: the analytics are a general-purpose library with no personal
 data in them, so they're open source. The app that reads a real account stays private.
